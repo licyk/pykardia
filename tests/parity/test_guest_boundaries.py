@@ -1,6 +1,7 @@
 """Compare actual malformed-guest observations against the original Rust WASM host."""
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -24,7 +25,9 @@ class GuestBoundaryTests(unittest.TestCase):
             engine,
             wasmtime.Module(engine, wat({"deps": ["../../../dep", "..", "//dir//x"]}, [], "")),
         )
-        self.assertEqual(module("file.wat", code).deps, ["dep", "", str(Path("/dir/x"))])
+        # Windows treats the double leading separator as a UNC path.
+        absolute = Path("//dir//x") if os.name == "nt" else Path("/dir/x")
+        self.assertEqual(module("file.wat", code).deps, ["dep", "", str(absolute)])
 
     def test_rust_guest_metadata_and_abi_observations(self) -> None:
         """Load all real WAT artifacts through the production host and compare the Rust trace."""

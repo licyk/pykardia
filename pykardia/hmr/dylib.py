@@ -127,6 +127,9 @@ def open_library(path: Path) -> ctypes.CDLL:
     directory = Path(tempfile.gettempdir()) / f"pykardia-dylib-{os.getpid()}"
     directory.mkdir(exist_ok=True)
     copy = directory / f"{next(_COPIES)}-{path.name}"
+    if os.name == "nt" and not copy.suffix:
+        # LoadLibrary appends .dll when its input has no extension.
+        copy = copy.with_suffix(".dll")
     shutil.copyfile(path, copy)
     library = ctypes.CDLL(str(copy))
     try:

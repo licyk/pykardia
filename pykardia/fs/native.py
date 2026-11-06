@@ -1,4 +1,4 @@
-"""Native observer adaptation for the validated Linux watchdog backend."""
+"""Native observers supporting independent watches and runtime error delivery."""
 
 import os
 import sys
@@ -9,7 +9,12 @@ from watchdog.observers.api import BaseObserver
 
 
 def observer(on_error: Callable[[Exception], None]) -> BaseObserver:
-    """Forward Linux reader failures through the watch's runtime error channel."""
+    """Select independent native watches and forward Linux reader failures."""
+    if sys.platform == "darwin":
+        from watchdog.observers.kqueue import KqueueObserver
+
+        # FSEvents shares path registrations across independent observers.
+        return KqueueObserver()
     if sys.platform != "linux":
         return Observer()
     from watchdog.observers.inotify import InotifyEmitter

@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import async_timeout
+from watchdog.events import DirModifiedEvent
 
 from pykardia import Context, JsonValue, Level, PluginDef
 from pykardia.fs import Filter, Fs, FsExt, FsPlugin, Subscription, Watcher, WatchOptions
@@ -28,7 +29,7 @@ class WatchTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self) -> None:
         """Install the real fs service and a consumer fiber in a fresh temporary directory."""
-        self.temp = tempfile.TemporaryDirectory()
+        self.temp = tempfile.TemporaryDirectory(dir=Path.cwd())
         self.base = Path(self.temp.name)
         self.root = Context()
         await self.root.plugin(FsPlugin, None).settled()
@@ -231,6 +232,22 @@ class WatchTests(unittest.IsolatedAsyncioTestCase):
         path.unlink()
         await asyncio.sleep(0.05)
         self.assertEqual(seen, [])
+
+    async def test_parent_event_does_not_stop_delivery(self) -> None:
+        """Ignore native parent notifications while retaining real file change delivery."""
+        path = self.file("nested/file.txt")
+        watcher = self.watch(path.parent)
+        seen: list[Path] = []
+        watcher.on_change(seen.append)
+        watcher._observer.event_queue.put(
+            (
+                DirModifiedEvent(str(watcher._physical.parent)),
+                next(iter(watcher._observer.emitters)).watch,
+            )
+        )
+        path.write_text("changed")
+        await eventually(lambda: path in seen)
+        self.assertEqual(set(seen), {path})
 
     @unittest.skipUnless(sys.platform == "linux", "requires the Linux inotify backend")
     async def test_native_reader_error_enters_error_channel(self) -> None:

@@ -148,6 +148,9 @@ def export_dylib(
                 library = Path(sys.base_prefix) / "lib" / name
         library = library.resolve(strict=True)
         library_dirs.append(str(library.parent))
+        if sysconfig.get_config_var("PYTHONFRAMEWORK"):
+            # CFFI also adds -lpythonX.Y; framework builds keep that alias under lib/.
+            library_dirs.append(str(library.parent / "lib"))
         links.extend([str(library), f"-Wl,-rpath,{library.parent}"])
         # Rust's loader uses RTLD_LOCAL; extension modules need libpython's symbols globally.
         prelude += (

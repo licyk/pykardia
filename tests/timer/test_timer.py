@@ -260,11 +260,14 @@ class TimerTests(unittest.IsolatedAsyncioTestCase):
             """Create a real scheduling stall, then count the catch-up invocations."""
             calls.append(len(calls))
             if len(calls) == 1:
-                time.sleep(0.07)
-                asyncio.get_running_loop().call_later(0.005, done.set)
+                time.sleep(0.35)
+                done.set()
 
-        handle = self.timer.interval(timedelta(milliseconds=10), callback)
+        handle = self.timer.interval(timedelta(milliseconds=50), callback)
         await done.wait()
+        # Count loop turns rather than racing Windows' coarse timer resolution.
+        for _ in range(10):
+            await asyncio.sleep(0)
         await handle.dispose()
         self.assertGreaterEqual(len(calls), 7)
 

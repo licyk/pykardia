@@ -51,7 +51,11 @@ class EventHandler(FileSystemEventHandler):
             (event.src_path, event.dest_path) if event.event_type == "moved" else (event.src_path,)
         ):
             if raw:
-                path = self.logical / Path(os.fsdecode(raw)).relative_to(self.physical)
+                try:
+                    relative = Path(os.fsdecode(raw)).relative_to(self.physical)
+                except ValueError:
+                    continue
+                path = self.logical / relative
                 self.watcher._post(self.watcher._changed, path)
 
 
@@ -72,7 +76,7 @@ class Watcher:
         self._loop = asyncio.get_running_loop()
         self._active = True
         self._observer: BaseObserver = observer(lambda error: self._post(self._error_signal, error))
-        self._physical = self._base.resolve()
+        self._physical = self._base.resolve(strict=True)
         self._handler = EventHandler(self, self._physical, self._base)
         self._links: set[Path] = set()
 
@@ -131,7 +135,7 @@ class Watcher:
 
     def _changed(self, path: Path) -> None:
         """Handle directory links and apply file or traversal filtering on the runtime."""
-        if not self._active:
+        if not self._active or not path.exists():
             return
         if path.is_dir():
             if not self._is_file and path.is_symlink():
