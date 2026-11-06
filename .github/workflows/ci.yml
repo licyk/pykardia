@@ -1,0 +1,115 @@
+name: Python checks
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      release:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    name: Select the validation owner
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.scope.outputs.run }}
+    steps:
+      - id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+          CHECK_RELEASE: ${{ !inputs.release && github.event_name == 'push' && contains(fromJSON('["main", "kardia"]'), github.ref_name) }}
+        run: |
+          run=true
+          if [ "$CHECK_RELEASE" = true ]; then
+            if changed=$(gh api "repos/$GITHUB_REPOSITORY/compare/$BEFORE...$GITHUB_SHA" \
+              --jq 'any(.files[]; .filename == "pykardia/version.py")') && [ "$changed" = true ]; then
+              echo "The publish workflow runs the checks for this version change."
+              run=false
+            fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
+  python:
+    needs: scope
+    if: needs.scope.outputs.run == 'true'
+    name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+          cache-suffix: ${{ matrix.python-version }}
+      - run: rustup toolchain install 1.96.0 --profile minimal --target wasm32-unknown-unknown
+      - run: uv pip install --system -e '.[dev]'
+      - run: python scripts/check.py
+
+  distributions:
+    needs: scope
+    if: needs.scope.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+          cache-suffix: '3.11'
+      - run: uv pip install --system -e '.[dev]'
+      - run: python scripts/coverage.py
+      - run: python -m build --installer uv
+      - run: python scripts/check_install.py dist
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: distributions
+          path: dist/
+          if-no-files-found: error
+
+  wasm-export:
+    needs: scope
+    if: needs.scope.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+          cache-suffix: '3.11'
+      - run: uv pip install --system -e '.[dev]'
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}/pykardia-wasi
+          key: wasi25-cpython31112-${{ runner.os }}-${{ hashFiles('scripts/build_wasi.py') }}
+      - run: python scripts/build_wasi.py '${{ runner.temp }}/pykardia-wasi'
+      - run: python -m unittest tests.guest.test_wasm_sdk -v

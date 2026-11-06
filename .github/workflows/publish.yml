@@ -1,0 +1,48 @@
+name: Publish to PyPI
+
+on:
+  push:
+    branches: [main, kardia]
+    tags: ['v*']
+    paths: ['pykardia/version.py']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+    with:
+      release: true
+
+  publish:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pykardia
+    steps:
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: false
+      - name: Install Twine
+        run: uv pip install --system --upgrade twine
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: distributions
+          path: dist/
+      - name: Check the metadata
+        run: python -m twine check dist/*
+      - name: Publish
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+        run: python -m twine upload dist/* --skip-existing --non-interactive

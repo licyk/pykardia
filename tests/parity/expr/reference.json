@@ -1,0 +1,687 @@
+[
+  {
+    "value": {
+      "config": [
+        7
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "#1"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        false
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        8081
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "b2"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "fallback"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "big"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        [
+          1,
+          "x",
+          {
+            "a": 8080
+          }
+        ]
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        true
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        3.5
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        false
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        false
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        []
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        5
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        0
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        false
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        true
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "error": "cannot evaluate `null[unknown]`: cannot get required service \"unknown\" in inactive context",
+    "offset": 5,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `null.deep`: cannot read properties of null (reading deep)",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "value": {
+      "config": [
+        2
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        2
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "🙂"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "x"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "b"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "a"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        1
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        {
+          "a": 2,
+          "b": 3
+        }
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        [
+          1,
+          2
+        ]
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        {
+          "a": 1
+        }
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "line\n\t\r\u0000u1234"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "hello ${world}"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        1000
+      ]
+    }
+  },
+  {
+    "error": "cannot evaluate `1e+3`: syntax error in `1e+3`: invalid number 1e",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `1e-3`: syntax error in `1e-3`: invalid number 1e",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        1
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        -3
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        3
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        0.001
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        1
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        true
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        false
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        false
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        true
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        ""
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "null,true,[object Object]"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "9223372036854775807"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "1000000000000000000000"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "0.0000001"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        "9000000000000001"
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        true
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        false
+      ]
+    }
+  },
+  {
+    "error": "cannot evaluate `1 +`: syntax error: unexpected end",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `'open`: syntax error in `'open`: unterminated string",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `unknown.value`: cannot get required service \"unknown\" in inactive context",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `'🙂' + unknown`: cannot get required service \"unknown\" in inactive context",
+    "offset": 6,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate ``: syntax error: unexpected end",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `1 2`: syntax error in `1 2`: unexpected token",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `f()`: syntax error in `f()`: unexpected token",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `0x1`: syntax error in `0x1`: invalid number 0x1",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `[,]`: syntax error: unexpected `,`",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `{1:2}`: syntax error: expected a key",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `settings.1`: syntax error in `settings.1`: unexpected token",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `settings?.(`: syntax error: expected a property name",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `1 @ 2`: syntax error in `1 @ 2`: unexpected `@`",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `1\u001c+2`: syntax error in `1\u001c+2`: unexpected `\u001c`",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "value": {
+      "config": [
+        3
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        1
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        2
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        3
+      ]
+    }
+  },
+  {
+    "error": "cannot evaluate `missing?.value`: cannot get required service \"missing\" in inactive context",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "error": "cannot evaluate `null?.x.y`: cannot read properties of null (reading y)",
+    "offset": 0,
+    "path": [
+      "config",
+      "0"
+    ]
+  },
+  {
+    "value": {
+      "config": [
+        null
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        false
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        false
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        2
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        true
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        0
+      ]
+    }
+  },
+  {
+    "value": {
+      "config": [
+        0
+      ]
+    }
+  }
+]

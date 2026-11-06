@@ -1,0 +1,1 @@
+[["initial","Pending"],["provider apply",1],["consumer apply",1,"old"],["consumer cleanup",1],["provider cleanup",1],["provider apply",2],["consumer apply",2,"new"],["consumer cleanup",2],["replacement apply","new"],["identity",1,2,"new"],["provider cleanup",2],["provider apply",2],["provider cleanup",2],["final",0,0,0,"Active"]]

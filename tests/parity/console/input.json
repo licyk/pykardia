@@ -1,0 +1,12 @@
+{
+  "names": ["", "test", "HTTPServer", "你好", "🙂", "a🙂界", "long-name-for-signed-32bit-hash-overflow-abcdefghijklmnopqrstuvwxyz"],
+  "durations": [0, 999, -999, 1000, -1000, 1499, -1499, 1500, -1500, 59500, -59500, 59499, -59499, 90000, -90000, 3570000, -3570000, 3569999, 84600000, -84600000, 84599999, 129600000, -129600000, 9223372036854775807],
+  "render": [
+    {"config": {"colors": 0, "showTime": "", "showDiff": true}, "name": "test", "text": "one\ntwo\r\nthree\r\r\n", "ts": 2500},
+    {"config": {"colors": 1, "showTime": "", "showDiff": true, "label": {"width": 10, "margin": 2, "align": "right"}}, "name": "test", "text": "one\ntwo", "ts": 500},
+    {"config": {"colors": 2, "showTime": "", "showDiff": true, "label": {"width": 2, "margin": 0, "align": "right"}}, "name": "long🙂name", "text": "one\ntwo", "ts": 1000},
+    {"config": {"colors": 3, "showTime": "", "maxLength": 2}, "name": "你好🙂", "text": "你🙂好\r\náb\n\n", "ts": 2000},
+    {"config": {"colors": false, "showTime": "", "maxLength": 0, "label": {"width": 8}}, "name": "x", "text": "nonempty\n", "ts": 2000},
+    {"config": {"colors": 0, "showTime": "literal🙂 ", "showDiff": true}, "name": "test", "text": "one\ntwo", "ts": 1020}
+  ]
+}
