@@ -1,5 +1,10 @@
 # pykardia
 
+[![PyPI](https://img.shields.io/pypi/v/pykardia)](https://pypi.org/project/pykardia/)
+[![Python](https://img.shields.io/pypi/pyversions/pykardia)](https://pypi.org/project/pykardia/)
+[![CI](https://github.com/licyk/pykardia/actions/workflows/ci.yml/badge.svg)](https://github.com/licyk/pykardia/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-GPL--3.0--only-blue)](LICENSE)
+
 pykardia 是一个 Python 插件框架，用来组织可动态加载、更新和卸载的功能。
 插件可以提供服务、声明依赖，并把计时器、监听器和清理动作交给框架管理。
 当服务被替换或撤销时，依赖它的插件会随之重新加载或等待。
@@ -12,10 +17,15 @@ pykardia 是一个 Python 插件框架，用来组织可动态加载、更新和
 ## 开始使用
 
 需要 Python 3.10 或更高版本。
-在本仓库源码目录安装并运行示例：
+从 PyPI 安装：
 
 ```sh
-python -m pip install .
+python -m pip install pykardia
+```
+
+下载或克隆本仓库后，在仓库目录运行示例：
+
+```sh
 python examples/provider_consumer.py
 ```
 
