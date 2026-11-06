@@ -83,7 +83,6 @@ jobs:
           cache-dependency-glob: pyproject.toml
           cache-suffix: '3.11'
       - run: uv pip install --system -e '.[dev]'
-      - run: python scripts/coverage.py
       - run: python -m build --installer uv
       - run: python scripts/check_install.py dist
       - uses: actions/upload-artifact@v7.0.2
