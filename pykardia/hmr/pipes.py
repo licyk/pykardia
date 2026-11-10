@@ -97,11 +97,15 @@ class Shared:
         """Queue a message for the guest's stdin."""
         self._lines.put(dumps(message) + b"\n")
 
-    def kill(self, cause: ExitCause, reason: str | None = None) -> None:
-        """End the process; the first cause given is the one reported."""
+    def mark(self, cause: ExitCause, reason: str | None = None) -> None:
+        """Record why the process is ending; the first cause given is the one reported."""
         with self._lock:
             if self._cause is None:
                 self._cause = (cause, reason)
+
+    def kill(self, cause: ExitCause, reason: str | None = None) -> None:
+        """End the process, recording ``cause`` first."""
+        self.mark(cause, reason)
         try:
             self.child.kill()
         except OSError:

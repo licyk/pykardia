@@ -268,7 +268,11 @@ class ProcessInstance(GuestInstance):
             if export is Export.DISPOSE:
                 return b""
             raise exited()
-        timeout = (self.timeout or DISPOSE_TIMEOUT) if export is Export.DISPOSE else self.timeout
+        timeout = self.timeout
+        if export is Export.DISPOSE:
+            # a guest exits once it is disposed: its reader may reap it before this call returns
+            self.shared.mark(ExitCause.DISPOSED)
+            timeout = timeout or DISPOSE_TIMEOUT
         deadline = control.deadline()
         if deadline is None and timeout is not None:
             deadline = time.monotonic() + timeout

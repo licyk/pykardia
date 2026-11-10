@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import sys
 import tempfile
 import time
 import unittest
@@ -133,6 +134,13 @@ class ProcessGuestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             (exit.cause, exit.reason), (ExitCause.KILLED, "the guest did not answer in time")
         )
+        # the process is killed and reaped before the call returns
+        self.assertIsNotNone(exit.status)
+        self.assertNotEqual(exit.status, 0)
+        pid = handle.id()
+        if sys.platform != "win32" and pid is not None:
+            with self.assertRaises(ProcessLookupError):
+                os.kill(pid, 0)
         with self.assertRaisesRegex(ValueError, "^the guest process exited$"):
             greeter.call("hello", None)
         self.assertFalse(greeter.is_available())
@@ -222,16 +230,20 @@ class ProcessGuestTests(unittest.IsolatedAsyncioTestCase):
         """Disposal is reported as such and emits no exit event."""
         exits: list[GuestExited] = []
         self.root.on(GuestExited, exits.append)
-        fiber, greeter = await self.start(self.guest())
-        handle = greeter.handle()
-        assert handle is not None
-        await fiber.dispose()
-        exit = handle.exit()
-        assert exit is not None
-        self.assertEqual(exit.cause, ExitCause.DISPOSED)
+        # a disposed guest exits by itself: its reader must not report that first
+        for _ in range(10):
+            fiber, greeter = await self.start(self.guest())
+            handle = greeter.handle()
+            assert handle is not None
+            await fiber.dispose()
+            exit = handle.exit()
+            assert exit is not None
+            self.assertEqual(exit.cause, ExitCause.DISPOSED)
+            self.assertIsNotNone(exit.status)
+            with self.assertRaisesRegex(ValueError, "^the guest instance is disposed$"):
+                greeter.call("hello", None)
+        await asyncio.sleep(0.05)
         self.assertEqual(exits, [])
-        with self.assertRaisesRegex(ValueError, "^the guest instance is disposed$"):
-            greeter.call("hello", None)
 
     async def test_serves_a_guest_speaking_protocol_version_1(self) -> None:
         """A hand-written version 1 guest answers the handshake with status 1 and runs."""
