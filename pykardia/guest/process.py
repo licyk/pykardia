@@ -4,16 +4,17 @@
 from __future__ import annotations
 
 import contextlib
-import queue
 import sys
-import threading
-from typing import BinaryIO, TypeVar
+from typing import TYPE_CHECKING, BinaryIO, TypeVar
 
 from pykardia.core.json import dumps, loads
 from pykardia.core.value import JsonValue
 from pykardia.guest.abi import reply_value
 from pykardia.guest.api import CANCELLATION, Error, Guest, Host, Level
 from pykardia.guest.runtime import Runtime
+
+if TYPE_CHECKING:
+    import queue
 
 C = TypeVar("C")
 PROTOCOL = "kardia-guest/2"
@@ -26,7 +27,7 @@ class Channel(Host):
         """Capture the real pipes before application stdout is redirected to stderr."""
         self.stdin = stdin
         self.stdout = stdout
-        self.lock = threading.Lock()
+        self.lock: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
         self.queue: queue.Queue[JsonValue] | None = None
         self.id: int | None = None
 
@@ -128,6 +129,11 @@ def serve(guest: type[Guest[C]]) -> None:
         input = obj.get("input")
         if obj.get("export") == "hello" and isinstance(input, dict):
             if input.get("protocol") == PROTOCOL:
+                # imported here only: WASM guests embed this module, and WASI CPython lacks them
+                import queue
+                import threading
+
+                channel.lock = threading.Lock()
                 channel.queue = queue.Queue()
                 threading.Thread(target=channel.listen, daemon=True).start()
                 channel.write({"ready": PROTOCOL})
