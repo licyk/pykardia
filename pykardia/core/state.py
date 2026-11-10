@@ -446,6 +446,22 @@ class State:
         self.fibers[identity].revision += 1
         self.refresh(identity)
 
+    def fail(self, identity: FiberId, error: BaseException) -> None:
+        """Fail like a failed load; an in-flight transition unloads when it finishes."""
+        self.assert_active(identity)
+        fiber = self.fibers[identity]
+        if fiber.error is not None or fiber.removed:
+            return
+        fiber.error = error
+        previous, fiber.target = fiber.target, None
+        self.log(identity, Level.Error, error)
+        if fiber.inertia:
+            return
+        if previous is None:
+            self.update_state(identity)
+        else:
+            self.begin_unload(identity)
+
     def set_target(self, identity: FiberId, target: Epoch | None) -> None:
         """Coalesce changes under inertia without starting concurrent transitions."""
         fiber = self.fibers[identity]

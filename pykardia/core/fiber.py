@@ -202,6 +202,19 @@ class Fiber:
             return Completion.failed(error)
         return self.settled()
 
+    def fail(self, error: BaseException) -> Awaitable[None]:
+        """Fail the fiber from outside, as a load raising ``error`` would.
+
+        It unloads, reverting its effects and provisions, and stays Failed until
+        ``update`` or ``registry().replace`` clears the error. A load in flight
+        finishes first; a fiber that already failed keeps its first error.
+        """
+        try:
+            self._context._root.run(lambda state: state.fail(self.id(), error))
+        except Exception as error_:
+            return Completion.failed(error_)
+        return self.settled()
+
     def dispose(self) -> Disposal:
         """Retire a child; for the root, start a restart and retain its permanent identity."""
         if self.is_root():

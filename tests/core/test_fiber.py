@@ -17,6 +17,7 @@ from pykardia import (
     StatusChanged,
     ValidationError,
 )
+from pykardia.core.error import AccessError
 
 
 async def until(predicate: Callable[[], bool]) -> None:
@@ -97,6 +98,52 @@ class FiberTests(unittest.IsolatedAsyncioTestCase):
         gate.set()
         await update
         self.assertEqual(fiber.state(), FiberState.Active)
+
+    async def test_fail_from_outside_until_update(self) -> None:
+        """Failing from outside withdraws provisions, resists restart and keeps the first error."""
+        applied: list[JsonValue] = []
+
+        async def provide(context: Context, config: JsonValue) -> None:
+            """Provide a service the consumer waits for."""
+            applied.append(config)
+            context.provide_as("foo", 1)
+
+        provider = self.root.plugin_def(PluginDef.new(provide).provides(["foo"]))
+        consumer = self.root.plugin_def(PluginDef.new(noop).inject(["foo"]))
+        await provider.settled()
+        await consumer.settled()
+        self.assertEqual(consumer.state(), FiberState.Active)
+        with self.assertRaisesRegex(ValueError, "^gone$"):
+            await provider.fail(ValueError("gone"))
+        with self.assertRaisesRegex(ValueError, "^gone$"):
+            await provider.fail(ValueError("second"))
+        self.assertEqual(provider.state(), FiberState.Failed)
+        await until(lambda: consumer.state() is FiberState.Pending)
+        with self.assertRaisesRegex(ValueError, "^gone$"):
+            await provider.restart()
+        await provider.update(None)
+        await until(lambda: consumer.state() is FiberState.Active)
+        self.assertEqual(len(applied), 2)
+
+    async def test_fail_during_a_load_unloads_it_when_it_finishes(self) -> None:
+        """A load in flight completes, then unloads into Failed."""
+        gate = asyncio.Event()
+
+        async def apply(context: Context, config: JsonValue) -> None:
+            """Provide, then wait behind a real gate."""
+            context.provide_as("foo", 1)
+            await gate.wait()
+
+        fiber = self.root.plugin_def(PluginDef.new(apply))
+        failed = asyncio.ensure_future(fiber.fail(ValueError("gone")))
+        await asyncio.sleep(0)
+        self.assertEqual(fiber.state(), FiberState.Loading)
+        gate.set()
+        with self.assertRaisesRegex(ValueError, "^gone$"):
+            await failed
+        self.assertEqual(fiber.state(), FiberState.Failed)
+        with self.assertRaises(AccessError):
+            self.root.get_as("foo", int)
 
     async def test_disposal_state_sequences(self) -> None:
         """Pending, Failed and Active disposal each preserve their reference transitions."""

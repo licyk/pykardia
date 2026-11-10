@@ -42,6 +42,7 @@
 | `await fiber.settled()` | 等待当前转换静止；Pending 也可静止 |
 | `await fiber.update(config)` | 更新 JSON 源配置并等待处理 |
 | `await fiber.restart()` | 请求重载当前实例；不清除 Failed 错误 |
+| `await fiber.fail(error)` | 从外部使实例失败：卸载并撤回其服务，直到 `update` 或替换清除错误 |
 | `await fiber.dispose()` | 释放子插件并等待清理 |
 | `ctx.provide(service)` | 按 Service 的 NAME 提供实例，返回 EffectHandle |
 | `ctx.provide_as(key, value)` | 按名称提供对象 |
