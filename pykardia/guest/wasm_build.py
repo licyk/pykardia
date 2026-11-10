@@ -133,7 +133,7 @@ def export_wasm(
             stream.write(b"\x00" + leb128(len(payload)) + payload)
         compiled = wasmtime.Module.from_file(engine, str(output))
         imports = [(item.module, item.name) for item in compiled.imports]
-        if any(namespace != "cordis" for namespace, _ in imports):
+        if any(namespace not in ("cordis", "kardia") for namespace, _ in imports):
             raise RuntimeError(f"unexpected imports: {imports}")
 
 

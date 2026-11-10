@@ -68,21 +68,21 @@ class DylibCode(GuestCode):
     def __init__(self, library: ctypes.CDLL) -> None:
         """Configure the original signatures without translating the guest ABI."""
         self.library = library
-        self.new = library.cordis_new
+        self.new = getattr(library, symbol(library, "new"))
         self.new.argtypes, self.new.restype = [], ctypes.c_void_p
-        self.meta = library.cordis_meta
+        self.meta = getattr(library, symbol(library, "meta"))
         self.meta.argtypes, self.meta.restype = (
             [ctypes.c_void_p, ctypes.POINTER(HostApi)],
             ctypes.c_int32,
         )
-        self.apply = library.cordis_apply
+        self.apply = getattr(library, symbol(library, "apply"))
         self.apply.argtypes, self.apply.restype = (
             [ctypes.c_void_p, ctypes.POINTER(HostApi), ctypes.c_size_t],
             ctypes.c_int32,
         )
-        self.call = library.cordis_call
+        self.call = getattr(library, symbol(library, "call"))
         self.call.argtypes, self.call.restype = self.apply.argtypes, ctypes.c_int32
-        self.dispose = library.cordis_dispose
+        self.dispose = getattr(library, symbol(library, "dispose"))
         self.dispose.argtypes, self.dispose.restype = (
             [ctypes.c_void_p, ctypes.POINTER(HostApi)],
             None,
@@ -118,6 +118,11 @@ class DylibInstance(AbiInstance):
     def close(self) -> None:
         """Release Python references only; guest dispose owns state and mappings stay retained."""
         self.state = None
+
+
+def symbol(library: ctypes.CDLL, name: str) -> str:
+    """Name ``kardia_<name>``, or ``cordis_<name>`` when the library has no kardia_* name."""
+    return f"kardia_{name}" if hasattr(library, f"kardia_{name}") else f"cordis_{name}"
 
 
 def open_library(path: Path) -> ctypes.CDLL:

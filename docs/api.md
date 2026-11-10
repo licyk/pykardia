@@ -15,7 +15,7 @@
 | `pykardia.logger_console` | ConsoleConfig、ConsoleExporter、ConsolePlugin | [日志](resources.md#日志) |
 | `pykardia.loader` | Catalog、Resolver、Loader、EntryHandle、TreeHandle | [配置应用](configuration.md) |
 | `pykardia.include` | Include、IncludeConfig、IncludePlugin | [配置应用](configuration.md#include-与写回) |
-| `pykardia.hmr` | ModuleGraph、ModuleSource、ModuleCode、Exports、Hmr、HmrExt、GuestService；ProcessGuest、GuestCommand、Spawner、GuestHandle、GuestExit、GuestCode/GuestInstance | [热更新](hot-reload.md)、[Guest 开发](guests.md#进程宿主与协议) |
+| `pykardia.hmr` | ModuleGraph、ModuleSource、ModuleCode、Exports、Hmr、HmrExt、GuestService；ProcessGuest、GuestCommand、Spawner、GuestHandle、GuestExit、GuestCode/GuestInstance；WasmSource/DylibSource 接受 `kardia_*` 与 `cordis_*` 两套入口名 | [热更新](hot-reload.md)、[Guest 开发](guests.md#进程宿主与协议) |
 | `pykardia.guest` | Guest、Host、Meta、Request、Error、serve | [Guest 开发](guests.md) |
 
 ## Context 与插件定义

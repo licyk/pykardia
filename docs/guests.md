@@ -193,6 +193,11 @@ python -m pykardia.guest.export process examples/guest_counter.py Counter /tmp/p
 因此 guest 可以自行选择许可证；pykardia 的其余部分仍为 GPL-3.0-only。与其他宿主互通时使用 `cordis_*` 入口和 `cordis` WASM imports；
 自行实现宿主需要匹配这些 ABI，普通应用使用上述 Source 即可。
 
+入口名称也可以是 `kardia_*`（`kardia_meta`、`kardia_new` 等）。`WasmSource` 和 `DylibSource`
+对每一项先查找 `kardia_*`，找不到时再查找 `cordis_*`，因此 guest 可以只导出其中一套、混用或两套都导出
+（都存在时调用 `kardia_*`）；WASM 宿主函数同时在 `kardia` 和 `cordis` 两个导入模块下提供，一个模块可以混用两者。
+与 cordis-rs 的 `kardia-hmr` 一致。
+
 ## 进程宿主与协议
 
 `ProcessSource` 把模块路径当作程序运行，不带参数。需要参数、环境变量、工作目录、

@@ -1,11 +1,12 @@
 """Source rust_guest.rs native-library and compiled WASM acceptance."""
 
+import os
 from typing import ClassVar
 
 from pykardia.hmr.dylib import DylibSource
 from pykardia.hmr.wasm import WasmSource
 from tests.hmr.guest_common import GuestCase
-from tests.parity.rust_guest.build import Kind
+from tests.parity.rust_guest.build import Kind, artifact
 
 
 class DylibTests(GuestCase):
@@ -13,6 +14,17 @@ class DylibTests(GuestCase):
 
     kind: ClassVar[Kind] = "dylib"
     Source = DylibSource
+
+    async def test_loads_a_dylib_exporting_only_the_kardia_names(self) -> None:
+        """A library without the cordis_* symbols loads through its kardia_* ones."""
+        os.link(artifact("dylib", "kardia-names"), self.path)
+        await self.load({})
+        view = self.root.view("greeter")
+        assert isinstance(view, dict)
+        self.assertEqual(view["version"], "v1")
+        result = self.service().call("hello", None)
+        assert isinstance(result, dict)
+        self.assertEqual(result["calls"], 1)
 
     async def test_runs_a_dylib_plugin(self) -> None:
         """The C ABI carries real metadata, application buffers, calls and logs."""

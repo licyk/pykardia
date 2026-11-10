@@ -13,6 +13,16 @@ from pykardia.hmr.wasm import WasmSource
 from pykardia.loader import Loader
 from tests.hmr.wat import forwarder, greeter, wat
 
+KARDIA_IMPORTS = ["read", "write", "log", "provide", "view", "invoke"]
+
+
+def renamed(kardia: list[str]) -> str:
+    """Return the greeter with kardia_* exports, importing ``kardia`` names from kardia."""
+    text = greeter("v1").replace('(export "cordis_', '(export "kardia_')
+    for name in kardia:
+        text = text.replace(f'(import "cordis" "{name}"', f'(import "kardia" "{name}"')
+    return text
+
 
 class WasmTests(unittest.IsolatedAsyncioTestCase):
     """Observe real Wasmtime memory and the actual bridge, loader and HMR services."""
@@ -52,6 +62,37 @@ class WasmTests(unittest.IsolatedAsyncioTestCase):
             return [self.base / name]
 
         return await self.hmr.reconcile(roots)
+
+    async def test_finds_the_kardia_names_of_exports_and_host_functions(self) -> None:
+        """A guest with kardia_* exports importing every host function from kardia runs."""
+        fiber = await self.load("greeter.wat", renamed(KARDIA_IMPORTS), {"name": "alice"})
+        self.assertEqual(fiber.state(), FiberState.Active)
+        self.assertEqual(self.root.view("version"), "v1")
+        service = self.root.get_as("greeter", GuestService).arc()
+        self.assertEqual(
+            service.call("hello", [1]), {"key": "greeter", "method": "hello", "args": [1]}
+        )
+
+    async def test_a_module_may_import_from_both_modules(self) -> None:
+        """Host functions resolve whichever of the two modules each import names."""
+        fiber = await self.load("greeter.wat", renamed(["read", "log"]))
+        self.assertEqual(fiber.state(), FiberState.Active)
+        self.assertIn("greeter v1 applied", [log.text for log in self.root.log_buffer()])
+
+    async def test_prefers_the_kardia_name_when_a_module_exports_both(self) -> None:
+        """With both names exported, the kardia_* function is the one called."""
+        both = wat(
+            {"plugin": {"provide": ["both"]}},
+            ["both", "{}", "kardia", "cordis"],
+            """
+(func (export "cordis_apply") (param i32) (result i32) (drop (call $provide @0 @1)) (i32.const 0))
+(func (export "kardia_call") (param i32) (result i32) (call $write @2) (i32.const 1))
+(func (export "cordis_call") (param i32) (result i32) (call $write @3) (i32.const 1))""",
+        )
+        fiber = await self.load("both.wat", both)
+        self.assertEqual(fiber.state(), FiberState.Active)
+        with self.assertRaisesRegex(ValueError, "^kardia$"):
+            self.root.get_as("both", GuestService).arc().call("hello", None)
 
     async def test_runs_a_wasm_plugin(self) -> None:
         """Application and invocation preserve the guest's JSON and log output."""

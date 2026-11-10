@@ -1,7 +1,7 @@
 # Original Rust guest acceptance fixture
 
 `sdk/src/*.rs` and `fixture/src/*.rs` are unmodified copies from
-`cordis-rs` commit `2880b9c` (`feat(hmr): kardia-guest/2 process guests …`, after v0.2.0):
+`cordis-rs` commit `e5d5ad1` (`feat(guest): export every guest entry under the kardia_* names too`):
 
 - `crates/kardia-guest/src/`
 - `crates/kardia-hmr/tests/fixtures/rust-guest/src/`

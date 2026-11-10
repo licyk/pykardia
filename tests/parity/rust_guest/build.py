@@ -44,8 +44,8 @@ def artifact(kind: Kind, version: str = "v1") -> Path:
             else "librust_guest.so"
         )
         output = target / "debug" / name
-    if version == "v2":
-        command.extend(["--features", "v2"])
+    if version in ("v2", "kardia-names"):
+        command.extend(["--features", version])
     subprocess.run(command, check=True)
     saved = target / f"{version}-{kind}-{output.name}"
     saved.unlink(missing_ok=True)

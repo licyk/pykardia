@@ -9,7 +9,10 @@ from pykardia.hmr.guest import AbiInstance, Export, GuestCode, GuestHost, guest_
 
 
 class WasmSource(ModuleSource):
-    """Load WASM binaries or WAT text with only the documented cordis host imports."""
+    """Load WASM binaries or WAT text importing the host from the kardia or cordis module.
+
+    Exports are found as ``kardia_*``, else ``cordis_*``.
+    """
 
     def __init__(self) -> None:
         """Create the shared engine used to compile each loaded module version."""
@@ -51,8 +54,13 @@ class WasmInstance(AbiInstance):
 
     def export(self, export: Export) -> int:
         """Call a typed guest export, treating an absent dispose function as success."""
-        name = f"cordis_{export.value}"
-        function = self.instance.exports(self.store).get(name)
+        exports = self.instance.exports(self.store)
+        name = f"kardia_{export.value}"
+        function = exports.get(name)
+        if not isinstance(function, wasmtime.Func):
+            # a guest without the kardia_* name for this export
+            name = f"cordis_{export.value}"
+            function = exports.get(name)
         if not isinstance(function, wasmtime.Func):
             if export is Export.DISPOSE:
                 return 0
@@ -94,7 +102,7 @@ class WasmInstance(AbiInstance):
 
 
 def define(linker: wasmtime.Linker, host: GuestHost) -> None:
-    """Bind the six guest imports to one host without exposing a WASI environment."""
+    """Bind the six guest imports under both modules, kardia and cordis, without WASI."""
 
     def read(caller: wasmtime.Caller, ptr: int) -> None:
         """Copy the current host message into a checked guest memory range."""
@@ -138,22 +146,23 @@ def define(linker: wasmtime.Linker, host: GuestHost) -> None:
         )
 
     i32 = wasmtime.ValType.i32()
-    linker.define_func("cordis", "read", wasmtime.FuncType([i32], []), read, access_caller=True)
-    linker.define_func(
-        "cordis", "write", wasmtime.FuncType([i32, i32], []), write, access_caller=True
-    )
-    linker.define_func(
-        "cordis", "log", wasmtime.FuncType([i32, i32, i32], []), log, access_caller=True
-    )
-    linker.define_func(
-        "cordis", "provide", wasmtime.FuncType([i32] * 4, [i32]), provide, access_caller=True
-    )
-    linker.define_func(
-        "cordis", "view", wasmtime.FuncType([i32, i32], [i32]), view, access_caller=True
-    )
-    linker.define_func(
-        "cordis", "invoke", wasmtime.FuncType([i32] * 6, [i32]), invoke, access_caller=True
-    )
+    for module in ("kardia", "cordis"):
+        linker.define_func(module, "read", wasmtime.FuncType([i32], []), read, access_caller=True)
+        linker.define_func(
+            module, "write", wasmtime.FuncType([i32, i32], []), write, access_caller=True
+        )
+        linker.define_func(
+            module, "log", wasmtime.FuncType([i32, i32, i32], []), log, access_caller=True
+        )
+        linker.define_func(
+            module, "provide", wasmtime.FuncType([i32] * 4, [i32]), provide, access_caller=True
+        )
+        linker.define_func(
+            module, "view", wasmtime.FuncType([i32, i32], [i32]), view, access_caller=True
+        )
+        linker.define_func(
+            module, "invoke", wasmtime.FuncType([i32] * 6, [i32]), invoke, access_caller=True
+        )
 
 
 def memory(caller: wasmtime.Caller) -> wasmtime.Memory:
