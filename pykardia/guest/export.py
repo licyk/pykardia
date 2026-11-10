@@ -180,7 +180,8 @@ import sys
 import tempfile
 from {module}_ffi import ffi
 _bundle = tempfile.mkdtemp(prefix="pykardia-guest-")
-atexit.register(shutil.rmtree, _bundle)
+# the host process may hold the archive open to its exit (importlib.metadata does)
+atexit.register(shutil.rmtree, _bundle, ignore_errors=True)
 _path = _bundle + "/guest.zip"
 with open(_path, "wb") as _stream:
     _stream.write(base64.b64decode({embedded!r}))

@@ -44,6 +44,8 @@ HANDSHAKE_TIMEOUT = 10.0
 FRAME_LIMIT = 16 * 1024 * 1024
 DISPOSE_TIMEOUT = 5.0
 """How long ``dispose`` may take when the guest has no timeout of its own."""
+COPY_RELEASE = 1.0
+"""How long the private copy of an ended Windows guest may stay in use before it is left."""
 
 
 @dataclass(frozen=True)
@@ -99,7 +101,7 @@ class StdSpawner(Spawner):
     def spawn(self, command: GuestCommand) -> GuestProcess:
         """Start the process; on Windows a private copy keeps the file replaceable."""
         argv = [command.program, *command.args]
-        directory: tempfile.TemporaryDirectory[str] | None = None
+        directory: Path | None = None
         if sys.platform == "win32":
             if zipfile.is_zipfile(command.program):
                 with open(command.program, "rb") as archive:
@@ -107,8 +109,8 @@ class StdSpawner(Spawner):
                 argv = [interpreter, *argv]
             else:
                 # Windows locks running executables; a private copy allows live replacement.
-                directory = tempfile.TemporaryDirectory(prefix="pykardia-process-")
-                executable = Path(directory.name) / Path(command.program).name
+                directory = Path(tempfile.mkdtemp(prefix="pykardia-process-"))
+                executable = directory / Path(command.program).name
                 shutil.copy2(command.program, executable)
                 argv[0] = str(executable)
         env = {**os.environ, **dict(command.env)} if command.env else None
@@ -123,7 +125,7 @@ class StdSpawner(Spawner):
             )
         except OSError:
             if directory is not None:
-                directory.cleanup()
+                shutil.rmtree(directory, ignore_errors=True)
             raise
         process = GuestProcess.from_child(child)
         if directory is not None:
@@ -134,9 +136,7 @@ class StdSpawner(Spawner):
 class CopiedChild:
     """A child running from a private copy, removed once the child has been waited for."""
 
-    def __init__(
-        self, child: subprocess.Popen[bytes], directory: tempfile.TemporaryDirectory[str]
-    ) -> None:
+    def __init__(self, child: subprocess.Popen[bytes], directory: Path) -> None:
         """Retain the child and its copy's directory."""
         self.child = child
         self.directory = directory
@@ -154,14 +154,27 @@ class CopiedChild:
         """Return the return code once the child has ended, then remove its copy."""
         code = self.child.poll()
         if code is not None:
-            self.directory.cleanup()
+            self.remove()
         return code
 
     def wait(self, timeout: float | None = None) -> int:
         """Wait for the child, then remove its copy."""
         code = self.child.wait(timeout)
-        self.directory.cleanup()
+        self.remove()
         return code
+
+    def remove(self) -> None:
+        """Remove the copy, leaving it behind if it stays in use; this never fails the reaper.
+
+        Windows can refuse to delete an image for a moment after its process has ended, and
+        every thread that reaps the child (its reader, a caller killing it) removes the copy.
+        """
+        deadline = time.monotonic() + COPY_RELEASE
+        while True:
+            shutil.rmtree(self.directory, ignore_errors=True)
+            if not os.path.exists(self.directory) or time.monotonic() >= deadline:
+                return
+            time.sleep(0.05)
 
 
 @dataclass
