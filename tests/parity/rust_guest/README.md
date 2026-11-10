@@ -1,7 +1,7 @@
 # Original Rust guest acceptance fixture
 
 `sdk/src/*.rs` and `fixture/src/*.rs` are unmodified copies from
-`cordis-rs` commit `e5d5ad1` (`feat(guest): export every guest entry under the kardia_* names too`):
+`cordis-rs` commit `67f1604` (`feat(hmr): typed guest failures, WasmGuest, the Mach-port setting, declared provides and contained threads`):
 
 - `crates/kardia-guest/src/`
 - `crates/kardia-hmr/tests/fixtures/rust-guest/src/`

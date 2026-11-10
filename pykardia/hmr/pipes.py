@@ -1,7 +1,8 @@
 """The threads around a guest process and the state they share.
 
 A writer for its stdin, a reader for its stdout and a tail of its stderr run on threads of
-their own, so a call's deadline holds whichever thread waits for it.
+their own, so a call's deadline holds whichever thread waits for it. A thread that fails
+kills the guest, with the error as the reason.
 """
 
 from __future__ import annotations
@@ -91,7 +92,9 @@ class Shared:
         self._exit_callbacks: list[Callable[[GuestExit], None]] = []
         self._pings: dict[int, Callable[[], None]] = {}
         self._numbers = itertools.count()
-        threading.Thread(target=write_lines, args=(stdin, self._lines), daemon=True).start()
+        threading.Thread(
+            target=write_lines, args=(stdin, self._lines, self), name="guest-stdin", daemon=True
+        ).start()
 
     def send(self, message: JsonValue) -> None:
         """Queue a message for the guest's stdin."""
@@ -194,6 +197,15 @@ class Shared:
         """Mark stderr as fully read."""
         self._stderr_closed.set()
 
+    def broken(self, thread: str, error: Exception) -> None:
+        """Kill the guest after one of its threads failed; its calls fail with the reason."""
+        reason = f"the {thread} thread failed: {error!r}"
+        self.mark(ExitCause.KILLED, reason)
+        # before the kill, so that the instance hears the reason before the reader's end of stdout
+        self.incoming.put(Closed(reason))
+        self.kill(ExitCause.KILLED, reason)
+        self.reap()
+
 
 def start(
     child: GuestChild,
@@ -206,14 +218,16 @@ def start(
     """Start the threads of a guest process and return their shared state."""
     shared = Shared(child, stdin, stderr is not None)
     if stderr is not None:
-        threading.Thread(target=read_stderr, args=(stderr, shared, logger), daemon=True).start()
+        threading.Thread(
+            target=read_stderr, args=(stderr, shared, logger), name="guest-stderr", daemon=True
+        ).start()
     threading.Thread(
-        target=read_messages, args=(stdout, limit, shared, logger), daemon=True
+        target=read_messages, args=(stdout, limit, shared, logger), name="guest-stdout", daemon=True
     ).start()
     return shared
 
 
-def write_lines(stdin: IO[bytes], lines: queue.Queue[bytes | None]) -> None:
+def write_lines(stdin: IO[bytes], lines: queue.Queue[bytes | None], shared: Shared) -> None:
     """Write queued lines until the process is reaped or the pipe breaks."""
     try:
         while (line := lines.get()) is not None:
@@ -221,6 +235,8 @@ def write_lines(stdin: IO[bytes], lines: queue.Queue[bytes | None]) -> None:
             stdin.flush()
     except (OSError, ValueError):
         pass
+    except Exception as error:
+        shared.broken("guest-stdin", error)
     finally:
         try:
             stdin.close()
@@ -268,6 +284,8 @@ def read_messages(stdout: IO[bytes], limit: int, shared: Shared, logger: Logger 
                     )
                 continue
             shared.incoming.put(Message(message))
+    except Exception as error:
+        fault = f"the guest-stdout thread failed: {error!r}"
     finally:
         if fault is not None:
             shared.kill(ExitCause.KILLED, fault)
@@ -288,6 +306,9 @@ def read_stderr(stderr: IO[bytes], shared: Shared, logger: Logger | None) -> Non
                 logger.log(Level.Debug, line.decode("utf-8", errors="replace").rstrip())
     except (OSError, ValueError):
         pass
+    except Exception as error:
+        shared.stderr_closed()
+        shared.broken("guest-stderr", error)
     finally:
         shared.stderr_closed()
         try:

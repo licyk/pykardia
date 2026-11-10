@@ -2,11 +2,14 @@
 
 import asyncio
 import os
+import re
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
+from typing import IO
 
 import async_timeout
 
@@ -40,6 +43,55 @@ class Recorder(Spawner):
         """Record the command and delegate to the default spawner."""
         self.commands.append(command)
         return StdSpawner().spawn(command.with_env("SPAWNED_BY", "recorder"))
+
+
+class Tripwire:
+    """A pipe that raises on its next read or write once armed."""
+
+    def __init__(self, pipe: IO[bytes], armed: threading.Event) -> None:
+        """Wrap ``pipe``."""
+        self.pipe = pipe
+        self.armed = armed
+
+    def trip(self) -> None:
+        """Raise once armed."""
+        if self.armed.is_set():
+            raise RuntimeError("tripped")
+
+    def readline(self, limit: int = -1) -> bytes:
+        """Read a line, then trip."""
+        line = self.pipe.readline(limit)
+        self.trip()
+        return line
+
+    def write(self, data: bytes) -> int:
+        """Trip, or write."""
+        self.trip()
+        return self.pipe.write(data)
+
+    def flush(self) -> None:
+        """Flush the pipe."""
+        self.pipe.flush()
+
+    def close(self) -> None:
+        """Close the pipe."""
+        self.pipe.close()
+
+
+class Tripping(Spawner):
+    """Spawn the guest with one of its pipes wrapped in a tripwire."""
+
+    def __init__(self, pipe: str, armed: threading.Event) -> None:
+        """Wrap the pipe named ``pipe`` (stdin, stdout or stderr)."""
+        self.pipe = pipe
+        self.armed = armed
+
+    def spawn(self, command: GuestCommand) -> GuestProcess:
+        """Spawn through the default spawner and wrap the pipe."""
+        process = StdSpawner().spawn(command)
+        wire = Tripwire(getattr(process, self.pipe), self.armed)
+        setattr(process, self.pipe, wire)
+        return process
 
 
 def greeter_meta() -> GuestMeta:
@@ -268,3 +320,30 @@ class ProcessGuestTests(unittest.IsolatedAsyncioTestCase):
         exit = handle.exit()
         assert exit is not None
         self.assertEqual(exit.cause, ExitCause.DISPOSED)
+
+    async def test_a_failing_io_thread_kills_the_guest_with_the_error_as_its_reason(self) -> None:
+        """An error raised in a pipe thread kills the guest and becomes its calls' error."""
+        for pipe in ("stdin", "stdout", "stderr"):
+            armed = threading.Event()
+            guest = ProcessGuest(GuestCommand(str(self.path)), Tripping(pipe, armed))
+            fiber, greeter = await self.start(guest)
+            handle = greeter.handle()
+            assert handle is not None
+            armed.set()
+            reason = f"the guest-{pipe} thread failed: RuntimeError('tripped')"
+            # the stderr thread trips on what the call writes there, maybe after its answer
+            try:
+                await asyncio.to_thread(greeter.call_timeout, "stderr", "trip", 5)
+            except ValueError as error:
+                self.assertEqual(str(error), reason)
+            else:
+                self.assertEqual(pipe, "stderr")
+            async with async_timeout.timeout(5):
+                exit = await handle.exited()
+            self.assertEqual((exit.cause, exit.reason), (ExitCause.KILLED, reason))
+            self.assertIn(reason, await failed(fiber))
+            # the reason, if the instance has not heard it yet, else that the process exited
+            with self.assertRaisesRegex(
+                ValueError, f"^(the guest process exited|{re.escape(reason)})$"
+            ):
+                greeter.call("hello", None)

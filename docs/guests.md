@@ -117,6 +117,9 @@ asyncio.run(main())
 ```
 
 `GuestService.value()` 返回 provide 时发布的 JSON 视图，并不自动随实例字段改变。
+guest 只能提供其元数据声明的服务：`provide` 一个未声明的键会以
+`cannot provide "<key>": the plugin does not declare it in provide` 失败，且不绑定任何服务，
+与 cordis-rs 的 `kardia-hmr` 一致。
 `call(method, args)` 同步执行 guest 方法，返回 JSON 值或抛出错误。
 
 ## 导出动态库
@@ -173,7 +176,7 @@ python -m pykardia.guest.export process examples/guest_counter.py Counter /tmp/p
 | `Meta.plugin(name).inject(key).provide(key)` | 声明依赖和提供的服务 |
 | `.dep(path)` | 声明静态模块依赖；导出的 JSON 值通过 apply 的 imports 传入 |
 | `Meta.value(value)` | 导出 JSON 数据而非插件；null 表示没有 value 导出 |
-| `host.provide(key, value)` | 提供可调用服务，并发布其 JSON 视图 |
+| `host.provide(key, value)` | 提供可调用服务，并发布其 JSON 视图；`key` 必须在 `Meta.provide` 中声明，否则宿主拒绝且不提供任何服务 |
 | `host.view(key)` | 读取已声明依赖的 JSON 视图 |
 | `host.invoke(key, method, args)` | 同步调用另一 guest 的服务 |
 | `host.log(level, text)` | 发送宿主日志 |
@@ -226,6 +229,9 @@ module = guest.module("plugins/jira")
   `await service.call_async(method, args, timeout)` 在事件循环之外执行，取消该任务即取消调用。
   桥接插件的 `apply` 和 `dispose` 同样不阻塞事件循环；未设置超时时 `dispose` 限定为 5 秒。
 - stderr 不再继承到宿主终端：最后 16 KiB 保存在退出报告中，每行也以 debug 级别记录。
+- 进程的 stdin、stdout、stderr 线程（`guest-stdin`、`guest-stdout`、`guest-stderr`）中抛出的
+  异常会杀死 guest，退出报告和失败调用的原因为 `the <thread> thread failed: <error>`，
+  与 `kardia-hmr` 中线程 panic 时的行为一致。
 - 进程在纤程释放之前结束时，`GuestHandle`（`service.handle()` 或 `GuestStarted` 事件）给出
   `GuestExit(status, cause, reason, stderr_tail)`；桥接插件发出 `GuestExited` 事件，并以
   `Fiber.fail` 使纤程失败、撤回其服务。`fiber.update(config)` 会启动新进程。

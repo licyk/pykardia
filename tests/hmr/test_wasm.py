@@ -157,18 +157,22 @@ class WasmTests(unittest.IsolatedAsyncioTestCase):
             ctx.provide_serialized_as("source", {"n": 1})
 
         await self.root.plugin_def(PluginDef.new(provide)).settled()
-        declared = forwarder({"plugin": {"inject": ["source"]}}, "(call $view @0)")
+        declared = forwarder(
+            {"plugin": {"inject": ["source"], "provide": ["copy"]}}, "(call $view @0)"
+        )
         fiber = await self.load("declared.wat", declared, {})
         self.assertEqual(fiber.state(), FiberState.Active)
         self.assertEqual(self.root.view("copy"), {"n": 1})
-        undeclared = forwarder({"plugin": {}}, "(call $view @0)")
+        undeclared = forwarder({"plugin": {"provide": ["copy"]}}, "(call $view @0)")
         fiber = await self.load("undeclared.wat", undeclared, {})
         self.assertIn("source", str(fiber.error()))
 
     async def test_calls_services_of_other_guests(self) -> None:
         """One guest invokes another's service through a declared host binding."""
         await self.load("greeter.wat", greeter("v1"), {})
-        caller = forwarder({"plugin": {"inject": ["greeter"]}}, "(call $invoke @1 @3 @4)")
+        caller = forwarder(
+            {"plugin": {"inject": ["greeter"], "provide": ["copy"]}}, "(call $invoke @1 @3 @4)"
+        )
         fiber = await self.load("caller.wat", caller, {})
         self.assertEqual(fiber.state(), FiberState.Active)
         self.assertEqual(self.root.view("copy"), {"key": "greeter", "method": "hello", "args": [2]})
@@ -176,10 +180,44 @@ class WasmTests(unittest.IsolatedAsyncioTestCase):
     async def test_rejects_calls_back_into_a_running_guest(self) -> None:
         """A guest providing then invoking itself receives the bridge's reentry error."""
         reentrant = forwarder(
-            {"plugin": {}}, "(drop (call $provide @5 @4)) (call $invoke @5 @3 @4)"
+            {"plugin": {"provide": ["self", "copy"]}},
+            "(drop (call $provide @5 @4)) (call $invoke @5 @3 @4)",
         )
         fiber = await self.load("reentrant.wat", reentrant, {})
         self.assertIn("re-entrant", str(fiber.error()))
+
+    async def test_refuses_to_provide_an_undeclared_service(self) -> None:
+        """A provide the metadata does not declare fails, and nothing is provided."""
+        body = """
+(func (export "cordis_apply") (param i32) (result i32)
+  (local $result i32)
+  (local.set $result (call $provide @0 @1))
+  (call $read (i32.const 1024))
+  (call $write (i32.const 1024) (i32.sub (i32.const -1) (local.get $result)))
+  (i32.const 1))"""
+        failing = wat({"plugin": {"provide": ["declared"]}}, ["undeclared", "{}"], body)
+        fiber = await self.load("failing.wat", failing, {})
+        self.assertEqual(
+            str(fiber.error()),
+            'cannot provide "undeclared": the plugin does not declare it in provide',
+        )
+        with self.assertRaisesRegex(Exception, "undeclared"):
+            self.root.view("undeclared")
+        # a guest that ignores the refusal runs, without the service
+        ignoring = wat(
+            {"plugin": {"provide": ["declared"]}},
+            ["undeclared", "{}", "declared"],
+            """
+(func (export "cordis_apply") (param i32) (result i32)
+  (drop (call $provide @0 @1))
+  (drop (call $provide @2 @1))
+  (i32.const 0))""",
+        )
+        fiber = await self.load("ignoring.wat", ignoring, {})
+        self.assertEqual(fiber.state(), FiberState.Active)
+        with self.assertRaisesRegex(Exception, "undeclared"):
+            self.root.view("undeclared")
+        self.assertEqual(self.root.view("declared"), {})
 
     async def test_passes_dependency_values_and_reloads_dependents(self) -> None:
         """Relative guest dependencies resolve to paths and their JSON values trigger reload."""

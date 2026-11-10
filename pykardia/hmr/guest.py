@@ -150,10 +150,16 @@ _ENTERED = Entered()
 class GuestHost:
     """The host side of one guest instance: its fiber and the ABI's host calls."""
 
-    def __init__(self, ctx: Context | None, slot: Slot | None) -> None:
-        """Retain context and a weak service-call route without creating an ownership cycle."""
+    def __init__(
+        self, ctx: Context | None, slot: Slot | None, meta: GuestMeta | None = None
+    ) -> None:
+        """Retain context and a weak service-call route without creating an ownership cycle.
+
+        ``meta`` is the plugin's metadata: the instance provides only what it declares.
+        """
         self._ctx = ctx
         self._slot = weakref.ref(slot) if slot is not None else None
+        self._provide = frozenset(meta.provide if meta is not None else ())
         self.message = b""
         self.output = b""
 
@@ -171,9 +177,15 @@ class GuestHost:
             self._ctx.logger().log(level, text)
 
     def provide(self, key: str, value: JsonValue) -> None:
-        """Provide ``key`` as a GuestService whose view is ``value``."""
-        service = GuestService(key, value, self._slot)
-        self.context_or_error().provide_serialized_as(key, service, GuestService.value)
+        """Provide ``key`` as a GuestService whose view is ``value``.
+
+        A key the plugin's metadata does not declare in ``provide`` is refused, and nothing
+        is provided.
+        """
+        ctx = self.context_or_error()
+        if key not in self._provide:
+            raise ValueError(f'cannot provide "{key}": the plugin does not declare it in provide')
+        ctx.provide_serialized_as(key, GuestService(key, value, self._slot), GuestService.value)
 
     def view(self, key: str) -> JsonValue:
         """Read a declared service's JSON view."""
@@ -385,7 +397,7 @@ def bridge(
     async def apply(ctx: Context, config: JsonValue) -> None:
         """Instantiate, register disposal, check metadata, apply and watch the process."""
         slot = Slot()
-        instance = await asyncio.to_thread(code.instantiate, GuestHost(ctx, slot))
+        instance = await asyncio.to_thread(code.instantiate, GuestHost(ctx, slot, meta))
         slot.instance, slot.handle = instance, instance.handle()
         logger = ctx.logger()
 
