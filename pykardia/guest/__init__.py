@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Python guest SDK for the process, native-library and WASM guest ABI."""
 
 from pykardia.core.value import JsonValue

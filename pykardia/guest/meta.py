@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Metadata builders for guest modules and their declared service access."""
 
 from __future__ import annotations

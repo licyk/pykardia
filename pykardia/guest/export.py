@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Build process, native and WASM guest artifacts from a Python module and class."""
 
 from __future__ import annotations
@@ -57,8 +58,11 @@ def sources(source: Path, module: str, module_root: Path | None = None) -> dict[
     if module_root is not None:
         for path in module_root.rglob("*.py"):
             files[path.relative_to(module_root).as_posix()] = path.read_bytes()
+    # the SDK's own licence: the guest and the modules above are MIT OR Apache-2.0
+    for name in ("LICENSE-MIT", "LICENSE-APACHE"):
+        files[f"LICENSES/pykardia-guest-{name}"] = (package / "guest" / name).read_bytes()
     for project, names in (
-        ("pykardia", ("LICENSE", "NOTICE")),
+        ("pykardia", ("NOTICE",)),
         ("typing_extensions", ("LICENSE",)),
     ):
         metadata = distribution(project)

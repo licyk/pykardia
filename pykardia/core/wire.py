@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Typed guest JSON decoding with serde's streaming field order and error positions."""
 
 from __future__ import annotations

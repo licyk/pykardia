@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Compile bundled Python guests into the original bare-WASM ABI."""
 
 import json

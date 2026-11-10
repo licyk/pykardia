@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Typed configuration decoding and reference-compatible issue paths."""
 
 from __future__ import annotations

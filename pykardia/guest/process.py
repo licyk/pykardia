@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Python guest SDK process adapter: JSON lines on stdin/stdout, version 1 or kardia-guest/2."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT OR Apache-2.0 */
 /* CPython embedding behind the original bare-WASM guest ABI. */
 #define PY_SSIZE_T_CLEAN
 #include "Python.h"

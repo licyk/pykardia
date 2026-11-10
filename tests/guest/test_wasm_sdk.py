@@ -60,7 +60,9 @@ class WasmSdkTests(test_process_sdk.ProcessSdkTests):
         for name in (
             "CPython-LICENSE",
             "CPython-third-party",
-            "pykardia-LICENSE",
+            "pykardia-guest-LICENSE-MIT",
+            "pykardia-guest-LICENSE-APACHE",
+            "pykardia-NOTICE",
             "typing_extensions-LICENSE",
         ):
             self.assertIn(f"LICENSES/{name}".encode(), data)

@@ -186,7 +186,11 @@ python -m pykardia.guest.export process examples/guest_counter.py Counter /tmp/p
 进程协议的 null view 会产生 JSON EOF 错误；需要表达空值时可提供包含 null 字段的对象，
 如 `{"value": null}`。动态库/WASM 的 null view 可以直接返回 null。
 
-产物保留许可证声明。与其他宿主互通时使用 `cordis_*` 入口和 `cordis` WASM imports；
+产物保留许可证声明：guest SDK（`pykardia/guest/` 以及导出时一并打包的
+`pykardia/core/config.py`、`value.py`、`json.py`、`wire.py`，文件头标有
+`SPDX-License-Identifier: MIT OR Apache-2.0`）可任选 MIT 或 Apache-2.0 许可证，
+产物中附带 `LICENSES/pykardia-guest-LICENSE-MIT` 和 `LICENSES/pykardia-guest-LICENSE-APACHE`，
+因此 guest 可以自行选择许可证；pykardia 的其余部分仍为 GPL-3.0-only。与其他宿主互通时使用 `cordis_*` 入口和 `cordis` WASM imports；
 自行实现宿主需要匹配这些 ABI，普通应用使用上述 Source 即可。
 
 ## 进程宿主与协议

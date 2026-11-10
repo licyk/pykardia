@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Guest implementation interface and synchronous host operations."""
 
 from __future__ import annotations

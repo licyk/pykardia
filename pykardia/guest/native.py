@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """CFFI embedding callbacks for native guest libraries."""
 
 from __future__ import annotations

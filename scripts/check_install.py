@@ -110,7 +110,8 @@ assert template.is_file()
 pykardia.guest.export.export_process(pathlib.Path("counter.py"), "Counter", pathlib.Path("counter"))
 pathlib.Path("counter.py").unlink()
 with zipfile.ZipFile("counter") as bundle:
-    assert b"GNU GENERAL PUBLIC LICENSE" in bundle.read("LICENSES/pykardia-LICENSE")
+    assert b"MIT License" in bundle.read("LICENSES/pykardia-guest-LICENSE-MIT")
+    assert b"Apache License" in bundle.read("LICENSES/pykardia-guest-LICENSE-APACHE")
     assert bundle.read("LICENSES/pykardia-NOTICE")
     assert b"Python Software Foundation" in bundle.read("LICENSES/typing_extensions-LICENSE")
 guest = subprocess.run(

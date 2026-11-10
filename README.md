@@ -52,4 +52,4 @@ pykardia examples/pykardia.yml
 | 查找常用类型和方法 | [API 参考](docs/api.md) |
 | 处理启动、依赖和运行时问题 | [故障排查](docs/troubleshooting.md) |
 
-许可证为 [GPL-3.0-only](LICENSE)，第三方声明见 [NOTICE](NOTICE)。
+许可证为 [GPL-3.0-only](LICENSE)，第三方声明见 [NOTICE](NOTICE)。guest SDK（`pykardia/guest/` 及其打包进 guest 的模块，文件头标有 SPDX）可任选 [MIT](pykardia/guest/LICENSE-MIT) 或 [Apache-2.0](pykardia/guest/LICENSE-APACHE)，guest 可以自行选择许可证。

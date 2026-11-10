@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Strict JSON boundary with source-compatible number, Unicode and error semantics."""
 
 import json

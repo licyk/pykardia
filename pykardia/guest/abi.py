@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """JSON host operations shared by native and WebAssembly guest exports."""
 
 from typing import Protocol

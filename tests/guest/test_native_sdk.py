@@ -68,9 +68,11 @@ class ExportBundleTests(unittest.TestCase):
             source.unlink()
             helper.unlink()
             with zipfile.ZipFile(path) as bundle:
+                self.assertIn(b"MIT License", bundle.read("LICENSES/pykardia-guest-LICENSE-MIT"))
                 self.assertIn(
-                    b"GNU GENERAL PUBLIC LICENSE", bundle.read("LICENSES/pykardia-LICENSE")
+                    b"Apache License", bundle.read("LICENSES/pykardia-guest-LICENSE-APACHE")
                 )
+                self.assertNotIn("LICENSES/pykardia-LICENSE", bundle.namelist())
                 self.assertIn(
                     b"Python Software Foundation", bundle.read("LICENSES/typing_extensions-LICENSE")
                 )

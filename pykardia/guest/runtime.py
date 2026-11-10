@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Shared export dispatcher used by process, native-library and WASM guest adapters."""
 
 from __future__ import annotations
