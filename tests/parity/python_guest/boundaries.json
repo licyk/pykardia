@@ -1,23 +1,23 @@
 [
   [
     "null",
-    "invalid metadata of module <module>: invalid type: null, expected struct Meta at line 1 column 4"
+    "invalid metadata of module <module>: invalid type: null, expected struct ModuleMeta at line 1 column 4"
   ],
   [
     "bool",
-    "invalid metadata of module <module>: invalid type: boolean `true`, expected struct Meta at line 1 column 4"
+    "invalid metadata of module <module>: invalid type: boolean `true`, expected struct ModuleMeta at line 1 column 4"
   ],
   [
     "number",
-    "invalid metadata of module <module>: invalid type: integer `1`, expected struct Meta at line 1 column 1"
+    "invalid metadata of module <module>: invalid type: integer `1`, expected struct ModuleMeta at line 1 column 1"
   ],
   [
     "string",
-    "invalid metadata of module <module>: invalid type: string \"hello\", expected struct Meta at line 1 column 7"
+    "invalid metadata of module <module>: invalid type: string \"hello\", expected struct ModuleMeta at line 1 column 7"
   ],
   [
     "empty_array",
-    "invalid metadata of module <module>: invalid length 1, expected struct Meta with 3 elements at line 1 column 2"
+    "invalid metadata of module <module>: invalid length 1, expected struct ModuleMeta with 3 elements at line 1 column 2"
   ],
   [
     "struct_array",
@@ -37,7 +37,7 @@
   ],
   [
     "plugin_bool",
-    "invalid metadata of module <module>: invalid type: boolean `true`, expected struct PluginMeta at line 1 column 14"
+    "invalid metadata of module <module>: invalid type: boolean `true`, expected struct GuestMeta at line 1 column 14"
   ],
   [
     "name_number",
@@ -69,7 +69,7 @@
   ],
   [
     "plugin_short_array",
-    "invalid metadata of module <module>: invalid length 0, expected struct PluginMeta with 3 elements at line 1 column 12"
+    "invalid metadata of module <module>: invalid length 0, expected struct GuestMeta with 3 elements at line 1 column 12"
   ],
   [
     "deps_object",

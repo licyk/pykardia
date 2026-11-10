@@ -177,6 +177,7 @@ python -m pykardia.guest.export process examples/guest_counter.py Counter /tmp/p
 | `host.view(key)` | 读取已声明依赖的 JSON 视图 |
 | `host.invoke(key, method, args)` | 同步调用另一 guest 的服务 |
 | `host.log(level, text)` | 发送宿主日志 |
+| `host.cancelled()` | 宿主是否已取消正在运行的导出；耗时的调用可据此提前结束（仅 `kardia-guest/2` 进程 guest） |
 
 显式 `pykardia.guest.Error` 将消息返回给宿主；未捕获异常转为 guest panic 错误。
 同一实例的直接或间接重入会被拒绝。进程 guest 的 stdout 是协议通道，`serve()` 会将
@@ -187,3 +188,41 @@ python -m pykardia.guest.export process examples/guest_counter.py Counter /tmp/p
 
 产物保留许可证声明。与其他宿主互通时使用 `cordis_*` 入口和 `cordis` WASM imports；
 自行实现宿主需要匹配这些 ABI，普通应用使用上述 Source 即可。
+
+## 进程宿主与协议
+
+`ProcessSource` 把模块路径当作程序运行，不带参数。需要参数、环境变量、工作目录、
+自定义进程创建、超时或帧大小上限时，使用 `ProcessGuest`：
+
+```python
+from pykardia.hmr import GuestCommand, GuestMeta, ProcessGuest
+
+guest = ProcessGuest(
+    GuestCommand("python3").with_args("plugin.py").with_env("PLUGIN_ROOT", root).with_cwd(data),
+    spawner=MySpawner(),   # 默认 StdSpawner
+    timeout=30,            # 调用者未设置截止时间时，每次导出的时限（秒）
+    frame_limit=1 << 20,   # guest 单行消息的最大字节数（默认 16 MiB）
+)
+# 元数据由宿主给出：构建插件时不启动进程；进程启动时必须声明相同的元数据
+definition = guest.plugin(GuestMeta("jira", [], ["jira"]))
+# 或像 ProcessSource 一样从 guest 读取元数据
+module = guest.module("plugins/jira")
+```
+
+- `Spawner.spawn(command)` 返回 `GuestProcess(stdin, stdout, child, stderr)`；`child` 需具备
+  `subprocess.Popen` 的 `pid`、`kill`、`poll`、`wait`。宿主可借此把进程交给自己的进程管理器。
+- `GuestService.call_timeout(method, args, timeout)` 超时后杀死进程，之后的调用失败；
+  `await service.call_async(method, args, timeout)` 在事件循环之外执行，取消该任务即取消调用。
+  桥接插件的 `apply` 和 `dispose` 同样不阻塞事件循环；未设置超时时 `dispose` 限定为 5 秒。
+- stderr 不再继承到宿主终端：最后 16 KiB 保存在退出报告中，每行也以 debug 级别记录。
+- 进程在纤程释放之前结束时，`GuestHandle`（`service.handle()` 或 `GuestStarted` 事件）给出
+  `GuestExit(status, cause, reason, stderr_tail)`；桥接插件发出 `GuestExited` 事件，并以
+  `Fiber.fail` 使纤程失败、撤回其服务。`fiber.update(config)` 会启动新进程。
+  `handle.ping(timeout)` 检查 `kardia-guest/2` guest 是否仍在应答。
+
+协议有两个版本。宿主的第一行以导出形式提供 `kardia-guest/2`：
+`{"export":"hello","input":{"protocol":"kardia-guest/2"}}`。版本 2 的 guest 回复
+`{"ready":"kardia-guest/2"}`；版本 1 的 guest 像对待任何未知导出一样回复 `{"done":1}`，
+宿主随后按版本 1 通信。版本 2 中每次导出带 `id`，相关消息都带同一 `id`；宿主还可发送
+`{"cancel": id}`（guest 可提前结束，结果被丢弃）和 `{"ping": n}`（即使有导出在运行也回复
+`{"pong": n}`）。`serve()` 两个版本都支持，与 Rust 的 `kardia-guest` 和 `kardia-hmr` 一致。

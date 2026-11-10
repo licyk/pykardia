@@ -5,7 +5,7 @@ from __future__ import annotations
 import wasmtime
 
 from pykardia.hmr.graph import ModuleCode, ModuleSource
-from pykardia.hmr.guest import Code, Export, Host, Instance, module
+from pykardia.hmr.guest import AbiInstance, Export, GuestCode, GuestHost, guest_module
 
 
 class WasmSource(ModuleSource):
@@ -18,10 +18,10 @@ class WasmSource(ModuleSource):
     def load(self, id: str) -> ModuleCode:
         """Compile current file contents and read metadata from an independent instance."""
         compiled = wasmtime.Module.from_file(self.engine, id)
-        return module(id, WasmCode(self.engine, compiled))
+        return guest_module(id, WasmCode(self.engine, compiled))
 
 
-class WasmCode(Code):
+class WasmCode(GuestCode):
     """One compiled module version capable of creating isolated guest stores."""
 
     def __init__(self, engine: wasmtime.Engine, compiled: wasmtime.Module) -> None:
@@ -29,15 +29,15 @@ class WasmCode(Code):
         self.engine = engine
         self.compiled = compiled
 
-    def instantiate(self, host: Host) -> WasmInstance:
+    def instantiate(self, host: GuestHost) -> WasmInstance:
         """Create fresh memory, guest globals and callbacks for one instance."""
         return WasmInstance(self, host)
 
 
-class WasmInstance(Instance):
+class WasmInstance(AbiInstance):
     """A store whose exported functions and host callbacks use the original integer ABI."""
 
-    def __init__(self, code: WasmCode, host: Host) -> None:
+    def __init__(self, code: WasmCode, host: GuestHost) -> None:
         """Install host functions and instantiate fresh guest state."""
         self.host = host
         self.store = wasmtime.Store(code.engine)
@@ -49,7 +49,7 @@ class WasmInstance(Instance):
             self.close()
             raise
 
-    def call(self, export: Export) -> int:
+    def export(self, export: Export) -> int:
         """Call a typed guest export, treating an absent dispose function as success."""
         name = f"cordis_{export.value}"
         function = self.instance.exports(self.store).get(name)
@@ -93,7 +93,7 @@ class WasmInstance(Instance):
         self.linker.close()
 
 
-def define(linker: wasmtime.Linker, host: Host) -> None:
+def define(linker: wasmtime.Linker, host: GuestHost) -> None:
     """Bind the six guest imports to one host without exposing a WASI environment."""
 
     def read(caller: wasmtime.Caller, ptr: int) -> None:
@@ -111,15 +111,15 @@ def define(linker: wasmtime.Linker, host: Host) -> None:
 
     def log(caller: wasmtime.Caller, level: int, ptr: int, length: int) -> None:
         """Forward a checked UTF-8 guest log buffer through the bridge."""
-        host.log(level, bytes_at(caller, ptr, length))
+        host.log_raw(level, bytes_at(caller, ptr, length))
 
     def provide(caller: wasmtime.Caller, key: int, key_len: int, value: int, value_len: int) -> int:
         """Decode pointer slices before providing the guest's service."""
-        return host.provide(bytes_at(caller, key, key_len), bytes_at(caller, value, value_len))
+        return host.provide_raw(bytes_at(caller, key, key_len), bytes_at(caller, value, value_len))
 
     def view(caller: wasmtime.Caller, key: int, key_len: int) -> int:
         """Read a checked guest key and return the host reply byte length."""
-        return host.view(bytes_at(caller, key, key_len))
+        return host.view_raw(bytes_at(caller, key, key_len))
 
     def invoke(
         caller: wasmtime.Caller,
@@ -131,7 +131,7 @@ def define(linker: wasmtime.Linker, host: Host) -> None:
         args_len: int,
     ) -> int:
         """Resolve all ABI slices before entering another guest instance."""
-        return host.invoke(
+        return host.invoke_raw(
             bytes_at(caller, key, key_len),
             bytes_at(caller, method, method_len),
             bytes_at(caller, args, args_len),

@@ -1,5 +1,8 @@
 """Run the Python SDK in actual subprocesses through the production process host."""
 
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -127,3 +130,87 @@ class ProcessSdkTests(unittest.IsolatedAsyncioTestCase):
                 "plugin": {"name": None, "inject": ["settings"], "provide": ["counter"]},
             },
         )
+
+
+class ProcessProtocolTests(unittest.TestCase):
+    """Drive an exported Python guest by hand: protocol 1, and kardia-guest/2 after hello."""
+
+    def setUp(self) -> None:
+        """Export the counter guest and start it with piped stdio."""
+        self.temp = tempfile.TemporaryDirectory()
+        path = Path(self.temp.name) / "counter"
+        export_process(Path(__file__).with_name("counter.py"), "Counter", path)
+        self.child = subprocess.Popen(
+            [sys.executable, str(path)], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+        )
+        assert self.child.stdin is not None and self.child.stdout is not None
+        self.stdin, self.stdout = self.child.stdin, self.child.stdout
+
+    def tearDown(self) -> None:
+        """Reap the guest and remove its artifact."""
+        self.stdin.close()
+        self.child.wait(10)
+        self.stdout.close()
+        self.temp.cleanup()
+
+    def send(self, message: JsonValue) -> None:
+        """Write one protocol line."""
+        self.stdin.write(json.dumps(message).encode() + b"\n")
+        self.stdin.flush()
+
+    def receive(self) -> JsonValue:
+        """Read one protocol line."""
+        return json.loads(self.stdout.readline())
+
+    def test_serves_protocol_1_to_a_host_that_offers_nothing_else(self) -> None:
+        """Exports without ids get answers without ids."""
+        self.send({"export": "apply", "input": {"config": {"initial": 2}, "imports": {}}})
+        provide = self.receive()
+        assert isinstance(provide, dict)
+        self.assertEqual(provide["call"], "provide")
+        self.assertNotIn("id", provide)
+        self.send({"result": None})
+        self.assertEqual(
+            self.receive(), {"call": "log", "level": 2, "text": "Python guest applied 你好"}
+        )
+        self.assertEqual(self.receive(), {"done": 0})
+        self.send({"export": "call", "input": {"key": "counter", "method": "increment", "args": 1}})
+        self.assertEqual(self.receive(), {"output": "3"})
+        self.assertEqual(self.receive(), {"done": 0})
+
+    def test_speaks_kardia_guest_2_after_the_handshake(self) -> None:
+        """Ready, ids, pings during a call and cancellation."""
+        self.send({"export": "hello", "input": {"protocol": "kardia-guest/2"}})
+        self.assertEqual(self.receive(), {"ready": "kardia-guest/2"})
+        self.send({"id": 1, "export": "apply", "input": {"config": None, "imports": {}}})
+        provide = self.receive()
+        assert isinstance(provide, dict)
+        self.assertEqual((provide["id"], provide["call"]), (1, "provide"))
+        self.send({"id": 1, "result": None})
+        self.assertEqual(
+            self.receive(),
+            {"call": "log", "level": 2, "text": "Python guest applied 你好", "id": 1},
+        )
+        self.assertEqual(self.receive(), {"done": 0, "id": 1})
+        self.send(
+            {
+                "id": 2,
+                "export": "call",
+                "input": {"key": "counter", "method": "sleep", "args": 10_000},
+            }
+        )
+        self.send({"ping": 7})
+        self.assertEqual(self.receive(), {"pong": 7})
+        self.send({"cancel": 2})
+        self.assertEqual(self.receive(), {"output": '"cancelled"', "id": 2})
+        self.assertEqual(self.receive(), {"done": 0, "id": 2})
+
+    def test_answers_a_handshake_it_does_not_know_as_protocol_1(self) -> None:
+        """An unknown protocol offer fails like any unknown export."""
+        self.send({"export": "hello", "input": {"protocol": "kardia-guest/9"}})
+        self.assertEqual(self.receive(), {"done": 1})
+        self.send({"export": "meta", "input": None})
+        output = self.receive()
+        assert isinstance(output, dict)
+        self.assertIn("output", output)
+        self.assertEqual(self.receive(), {"done": 0})

@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 from typing import Literal
 
-Kind = Literal["process", "dylib", "wasm"]
+Kind = Literal["process", "dylib", "wasm", "v1"]
 
 
 @functools.cache
@@ -27,13 +27,10 @@ def artifact(kind: Kind, version: str = "v1") -> Path:
         "--target-dir",
         str(target),
     ]
-    if kind == "process":
-        command.extend(["--bin", "rust-guest-process"])
-        output = (
-            target
-            / "debug"
-            / ("rust-guest-process.exe" if sys.platform == "win32" else "rust-guest-process")
-        )
+    if kind in ("process", "v1"):
+        binary = "rust-guest-process" if kind == "process" else "rust-guest-v1"
+        command.extend(["--bin", binary])
+        output = target / "debug" / (f"{binary}.exe" if sys.platform == "win32" else binary)
     elif kind == "wasm":
         command.extend(["--lib", "--target", "wasm32-unknown-unknown"])
         output = target / "wasm32-unknown-unknown" / "debug" / "rust_guest.wasm"

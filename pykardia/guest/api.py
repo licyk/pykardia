@@ -46,8 +46,31 @@ class Request:
     args: JsonValue
 
 
+class Cancellation:
+    """The running ``kardia-guest/2`` export (0: none) and the last one its host cancelled."""
+
+    def __init__(self) -> None:
+        """Start with no export running."""
+        self.running = 0
+        self.cancelled = 0
+
+    def is_cancelled(self) -> bool:
+        """Report whether the running export was cancelled."""
+        return self.running != 0 and self.cancelled == self.running
+
+
+CANCELLATION = Cancellation()
+
+
 class Host(ABC):
     """Synchronous host calls available while a guest export is running."""
+
+    def cancelled(self) -> bool:
+        """Report whether the host cancelled the running export, so a long call may stop.
+
+        Only a process guest served under ``kardia-guest/2`` is told; elsewhere this is False.
+        """
+        return CANCELLATION.is_cancelled()
 
     @abstractmethod
     def log(self, level: Level, text: str) -> None:

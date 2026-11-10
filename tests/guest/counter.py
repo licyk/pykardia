@@ -1,5 +1,6 @@
 """A typed Python guest used unchanged by every exported transport."""
 
+import time
 from dataclasses import dataclass
 
 from typing_extensions import Self
@@ -58,6 +59,14 @@ class Counter(Guest[CounterConfig]):
         if request.method == "print":
             print("application output 你好")
             return self.count
+        if request.method == "sleep":
+            assert isinstance(request.args, int)
+            until = time.monotonic() + request.args / 1000
+            while time.monotonic() < until:
+                if host.cancelled():
+                    return "cancelled"
+                time.sleep(0.005)
+            return "slept"
         return super().call(host, request)
 
     def dispose(self, host: Host) -> None:

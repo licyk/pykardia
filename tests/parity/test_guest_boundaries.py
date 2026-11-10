@@ -9,7 +9,7 @@ from pathlib import Path
 import wasmtime
 
 from pykardia.hmr import ModuleGraph, WasmSource
-from pykardia.hmr.guest import module
+from pykardia.hmr.guest import guest_module
 from pykardia.hmr.wasm import WasmCode
 from tests.hmr.wat import wat
 from tests.parity.python_guest.boundaries import fixtures
@@ -27,7 +27,7 @@ class GuestBoundaryTests(unittest.TestCase):
         )
         # Windows treats the double leading separator as a UNC path.
         absolute = Path("//dir//x") if os.name == "nt" else Path("/dir/x")
-        self.assertEqual(module("file.wat", code).deps, ["dep", "", str(absolute)])
+        self.assertEqual(guest_module("file.wat", code).deps, ["dep", "", str(absolute)])
 
     def test_rust_guest_metadata_and_abi_observations(self) -> None:
         """Load all real WAT artifacts through the production host and compare the Rust trace."""

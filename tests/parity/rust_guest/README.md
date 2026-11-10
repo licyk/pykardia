@@ -1,12 +1,15 @@
 # Original Rust guest acceptance fixture
 
 `sdk/src/*.rs` and `fixture/src/*.rs` are unmodified copies from
-`cordis-rs` commit `0ce472c391b6a8bf4fafa443000348e9e48af44a`:
+`cordis-rs` commit `2880b9c` (`feat(hmr): kardia-guest/2 process guests …`, after v0.2.0):
 
 - `crates/kardia-guest/src/`
 - `crates/kardia-hmr/tests/fixtures/rust-guest/src/`
 
-They retain the original GPL-3.0-only license (repository LICENSE and NOTICE).
+`sdk/` keeps the SDK's MIT OR Apache-2.0 license (`sdk/LICENSE-MIT`, `sdk/LICENSE-APACHE`);
+`fixture/` keeps the original GPL-3.0-only license (repository LICENSE and NOTICE).
+The fixture serves `kardia-guest/2` (`rust-guest-process`) and, by hand, protocol version 1
+(`rust-guest-v1`).
 The two Cargo manifests only detach these test sources from the original workspace.
 The generated fixture Cargo.lock matches the original fixture's lockfile.
 Do not modify these sources to make Python implementations pass.
