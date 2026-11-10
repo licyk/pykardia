@@ -3,6 +3,7 @@
 import asyncio
 import os
 import re
+import shutil
 import sys
 import tempfile
 import threading
@@ -29,6 +30,7 @@ from pykardia.hmr import (
     Spawner,
     StdSpawner,
 )
+from pykardia.hmr.process import CopiedChild
 from tests.parity.rust_guest.build import artifact
 
 
@@ -91,6 +93,21 @@ class Tripping(Spawner):
         process = StdSpawner().spawn(command)
         wire = Tripwire(getattr(process, self.pipe), self.armed)
         setattr(process, self.pipe, wire)
+        return process
+
+
+class Copying(Spawner):
+    """Record the private copy the default spawner runs each guest from (Windows only)."""
+
+    def __init__(self) -> None:
+        """Start with no copies."""
+        self.copies: list[Path] = []
+
+    def spawn(self, command: GuestCommand) -> GuestProcess:
+        """Spawn through the default spawner and record the copy it runs."""
+        process = StdSpawner().spawn(command)
+        assert isinstance(process.child, CopiedChild)
+        self.copies.append(process.child.directory / Path(command.program).name)
         return process
 
 
@@ -296,6 +313,23 @@ class ProcessGuestTests(unittest.IsolatedAsyncioTestCase):
                 greeter.call("hello", None)
         await asyncio.sleep(0.05)
         self.assertEqual(exits, [])
+
+    @unittest.skipUnless(sys.platform == "win32", "only Windows runs a guest from a copy")
+    async def test_a_copy_that_cannot_be_removed_does_not_keep_its_exit_unreported(self) -> None:
+        """Disposal reaps and reports a guest whose private copy is still open."""
+        spawner = Copying()
+        fiber, greeter = await self.start(ProcessGuest(GuestCommand(str(self.path)), spawner))
+        handle = greeter.handle()
+        assert handle is not None
+        copy = spawner.copies[0]
+        self.addCleanup(shutil.rmtree, copy.parent, True)
+        # Python opens files without FILE_SHARE_DELETE: the copy cannot be deleted meanwhile
+        with open(copy, "rb"):
+            await fiber.dispose()
+            exit = handle.exit()
+            assert exit is not None
+            self.assertEqual(exit.cause, ExitCause.DISPOSED)
+            self.assertIsNotNone(exit.status)
 
     async def test_serves_a_guest_speaking_protocol_version_1(self) -> None:
         """A hand-written version 1 guest answers the handshake with status 1 and runs."""
