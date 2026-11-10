@@ -196,7 +196,9 @@ python -m pykardia.guest.export process examples/guest_counter.py Counter /tmp/p
 入口名称也可以是 `kardia_*`（`kardia_meta`、`kardia_new` 等）。`WasmSource` 和 `DylibSource`
 对每一项先查找 `kardia_*`，找不到时再查找 `cordis_*`，因此 guest 可以只导出其中一套、混用或两套都导出
 （都存在时调用 `kardia_*`）；WASM 宿主函数同时在 `kardia` 和 `cordis` 两个导入模块下提供，一个模块可以混用两者。
-与 cordis-rs 的 `kardia-hmr` 一致。
+与 cordis-rs 的 `kardia-hmr` 一致。`python -m pykardia.guest.export` 导出的动态库和 WASM guest
+以两套名称导出每一项（`kardia_*` 转发到相同的实现），并从 `cordis` 模块导入宿主函数，
+因此在只认识 `cordis_*` 的旧宿主上也能加载。
 
 ## 进程宿主与协议
 

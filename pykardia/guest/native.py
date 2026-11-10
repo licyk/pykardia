@@ -80,7 +80,7 @@ class NativeHost:
 
 
 def install(ffi: FFI, guest: type[Guest[object]]) -> None:
-    """Register five C symbols and retain state handles until their matching disposal."""
+    """Register the C symbols, under both names, and retain state handles until disposal."""
     states: dict[int, object] = {}
 
     @ffi.def_extern()
@@ -121,3 +121,30 @@ def install(ffi: FFI, guest: type[Guest[object]]) -> None:
             dispatch(state, api, "dispose")
         finally:
             states.pop(int(ffi.cast("size_t", state)))
+
+    # the same exports under the kardia_* names; hosts that know only cordis_* use those
+
+    @ffi.def_extern()
+    def kardia_new() -> object:
+        """Allocate a state, as cordis_new does."""
+        return cordis_new()
+
+    @ffi.def_extern()
+    def kardia_meta(state: object, api: HostApi) -> int:
+        """Return metadata, as cordis_meta does."""
+        return cordis_meta(state, api)
+
+    @ffi.def_extern()
+    def kardia_apply(state: object, api: HostApi, length: int) -> int:
+        """Apply, as cordis_apply does."""
+        return cordis_apply(state, api, length)
+
+    @ffi.def_extern()
+    def kardia_call(state: object, api: HostApi, length: int) -> int:
+        """Call, as cordis_call does."""
+        return cordis_call(state, api, length)
+
+    @ffi.def_extern()
+    def kardia_dispose(state: object, api: HostApi) -> None:
+        """Dispose, as cordis_dispose does."""
+        cordis_dispose(state, api)

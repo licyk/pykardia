@@ -123,3 +123,12 @@ __attribute__((export_name("cordis_call")))
 int cordis_call(int length) { return dispatch("call", length); }
 __attribute__((export_name("cordis_dispose")))
 void cordis_dispose(void) { (void)dispatch("dispose", 0); }
+/* the same exports under the kardia_* names; imports stay on module "cordis" */
+__attribute__((export_name("kardia_meta")))
+int kardia_meta(void) { return cordis_meta(); }
+__attribute__((export_name("kardia_apply")))
+int kardia_apply(int length) { return cordis_apply(length); }
+__attribute__((export_name("kardia_call")))
+int kardia_call(int length) { return cordis_call(length); }
+__attribute__((export_name("kardia_dispose")))
+void kardia_dispose(void) { cordis_dispose(); }

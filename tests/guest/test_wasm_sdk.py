@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from typing import ClassVar
 
+import wasmtime
+
 from pykardia import Context
 from pykardia.guest.wasm_build import export_wasm
 from pykardia.hmr import ModuleGraph, WasmSource
@@ -52,6 +54,15 @@ class WasmSdkTests(test_process_sdk.ProcessSdkTests):
         self.graph = ModuleGraph(test_process_sdk.WithData(WasmSource()))
         self.root = Context()
         self.second = Context()
+
+    async def test_exports_both_name_sets_and_imports_cordis(self) -> None:
+        """Every export has a kardia_* twin of the same type; imports use cordis only."""
+        compiled = wasmtime.Module.from_file(wasmtime.Engine(), str(self.binary))
+        exports = {item.name: str(item.type) for item in compiled.exports}
+        for name in ("meta", "apply", "call", "dispose"):
+            self.assertIn(f"cordis_{name}", exports)
+            self.assertEqual(exports.get(f"kardia_{name}"), exports[f"cordis_{name}"])
+        self.assertEqual({item.module for item in compiled.imports}, {"cordis"})
 
     async def test_wasm_packages_license_notices(self) -> None:
         """The executable WASM artifact retains the bundled runtime and SDK notices."""

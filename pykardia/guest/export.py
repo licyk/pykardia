@@ -35,6 +35,11 @@ int cordis_meta(void *, const HostApi *);
 int cordis_apply(void *, const HostApi *, size_t);
 int cordis_call(void *, const HostApi *, size_t);
 void cordis_dispose(void *, const HostApi *);
+void *kardia_new(void);
+int kardia_meta(void *, const HostApi *);
+int kardia_apply(void *, const HostApi *, size_t);
+int kardia_call(void *, const HostApi *, size_t);
+void kardia_dispose(void *, const HostApi *);
 """
 
 
@@ -116,7 +121,7 @@ def export_dylib(
     libpython: Path | None = None,
     module_root: Path | None = None,
 ) -> None:
-    """Compile all five native C exports with CFFI and embed the SDK and guest source.
+    """Compile the C exports, cordis_* and kardia_*, with CFFI and embed the SDK and source.
 
     Requires CFFI, a C compiler and this interpreter's shared libpython. The built
     artifact uses that Python runtime and CFFI backend, without a pykardia install.

@@ -12,6 +12,7 @@ from typing import ClassVar
 from pykardia import Context
 from pykardia.guest.export import export_dylib, export_process
 from pykardia.hmr import DylibSource, ModuleGraph
+from pykardia.hmr.dylib import open_library
 from tests.guest import test_process_sdk
 
 
@@ -41,6 +42,13 @@ class NativeSdkTests(test_process_sdk.ProcessSdkTests):
         self.graph = ModuleGraph(test_process_sdk.WithData(DylibSource()))
         self.root = Context()
         self.second = Context()
+
+    async def test_exports_both_name_sets(self) -> None:
+        """The library has every cordis_* symbol older hosts need, and the kardia_* ones."""
+        library = open_library(self.library)
+        for name in ("new", "meta", "apply", "call", "dispose"):
+            for prefix in ("cordis", "kardia"):
+                self.assertTrue(hasattr(library, f"{prefix}_{name}"), f"{prefix}_{name}")
 
     def build_guest(self, guest: str, output: Path) -> None:
         """Compile another guest class into a fresh native library."""
