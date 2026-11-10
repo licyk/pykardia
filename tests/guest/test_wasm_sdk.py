@@ -58,7 +58,14 @@ class WasmSdkTests(test_process_sdk.ProcessSdkTests):
     async def test_exports_both_name_sets_and_imports_cordis(self) -> None:
         """Every export has a kardia_* twin of the same type; imports use cordis only."""
         compiled = wasmtime.Module.from_file(wasmtime.Engine(), str(self.binary))
-        exports = {item.name: str(item.type) for item in compiled.exports}
+        exports = {
+            item.name: (
+                [str(kind) for kind in item.type.params],
+                [str(kind) for kind in item.type.results],
+            )
+            for item in compiled.exports
+            if isinstance(item.type, wasmtime.FuncType)
+        }
         for name in ("meta", "apply", "call", "dispose"):
             self.assertIn(f"cordis_{name}", exports)
             self.assertEqual(exports.get(f"kardia_{name}"), exports[f"cordis_{name}"])
